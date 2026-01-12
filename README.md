@@ -1,6 +1,8 @@
 # set-hosts
 
-Wrapper script for Steven Black Hosts to manage two different hosts files on a timer. This allows you to block general ads/malware constantly and block distracting sites during work hours.
+Wrapper script for Steven Black Hosts to manage two different hosts files on a timer. This allows you to block general ads/malware constantly and block distracting sites during work hours only.
+
+The has been tested on Ubuntu 24.04.3 LTS only but linux distributions with /etc/hosts should work but the autostart/timer settings maybe different.
 
 # install
 
@@ -10,7 +12,7 @@ The script will set up and manage the Steven Black Hosts repo in .local/share so
 wget 
 ```
 
-## config
+## custom host files
 
 The bulk of the host files are created by the Steven Black script but you can have your own custom files as well. These are kept in:
 
@@ -57,6 +59,8 @@ Which is then copied across as the main hosts file - which is backed up everytim
 ## permissions
 
 The script requires sudo permissions to make changes to the system hosts file - and to restart the Network Manager to flush the DNS cache after changing the system hosts file.
+
+If you run the script on autostart you may want to have passwordless sudo set up for your user.
 
 ## setup
 
@@ -131,6 +135,7 @@ cp myhosts.conf.example ~/.local/share/myhosts/myhosts.conf
 ```
 
 You just need to specify the variables in the format:
+
 ```
 # Enable weekday-only work mode
 WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
@@ -159,13 +164,12 @@ crontab -e
 
 # run on reboot
 @reboot /home/you/.local/bin/set-hosts --auto
+
+# update host files repo once week
+30 9 * * 1 /home/you/.local/bin/set-hosts --update 
 ```
 
 An additional option is to set it to run as an autostart script. This should work as an alternative to the cron reboot.
-
-```
-touch ~/.config/autostart/set-hosts-auto.desktop
-```
 
 ```
 echo '[Desktop Entry]
@@ -174,3 +178,5 @@ Name=Set Hosts (Auto)
 Exec="$HOME/.local/bin/myhosts" --auto
 X-GNOME-Autostart-enabled=true' >> ~/.config/autostart/myhosts.desktop
 ```
+
+This will make the script run upon every login.

@@ -17,4 +17,5 @@ UPDATE_FLAGS="--nogendata --auto"
 WORK_UPDATE_EXTENSIONS="fakenews gambling porn social"
 WORK_UPDATE_FLAGS=""
 
+# restart network to flush dns cache when updating hosts file
 RESTART_NETWORK=false

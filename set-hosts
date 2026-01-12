@@ -92,7 +92,6 @@ Work hosts extensions
 
 -wf | --work-flags "--nogendata --auto"
 Work hosts flags
-
 _EOF_
 }
 
@@ -132,6 +131,7 @@ set_activation_path () {
         exit 1
     fi
 
+    # shellcheck source=/dev/null
     source "$ACTIVATE_PATH" || exit 1
 }
 
@@ -348,10 +348,10 @@ main() {
                 shift
                 ;;
             -uf|--update-flags)
-                UPDATE_flags="$2"
+                UPDATE_FLAGS="$2"
                 shift
                 ;;
-            -we|--work-extensions)
+            -wex|--work-extensions)
                 UPDATE_EXTENSIONS="$2"
                 shift
                 ;;
