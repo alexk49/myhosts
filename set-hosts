@@ -7,9 +7,7 @@
 # by restarting the NetworkManager, on ubuntu run:
 # sudo systemctl restart NetworkManager
 
-set -e
-set -u
-set -o pipefail
+set -euo pipefail
 
 # steven black's host repo and scripts
 SB_HOSTS_DIR="$HOME/.local/share/stevenblack-hosts"
@@ -21,6 +19,9 @@ MY_HOSTS_DIR="$HOME/.local/share/myhosts"
 # regenerate specified host file
 get_hosts=false
 
+# if host file is updated also restart network
+RESTART_NETWORK=false
+
 # timer settings for auto mode
 
 # Enable weekday-only work mode
@@ -30,6 +31,13 @@ WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
 WORK_START=09:00
 WORK_END=16:30
 
+# updateHostsFile.py default options
+
+UPDATE_EXTENSIONS="fakenews gambling porn"
+UPDATE_FLAGS="--nogendata --auto"
+
+WORK_UPDATE_EXTENSIONS=""
+WORK_UPDATE_FLAGS=""
 
 usage () {
     cat << _EOF_
@@ -65,6 +73,9 @@ when running --auto the hosts file will be set based on a timer
 
 This will default to work being Mon-Fri 8.30am to 16.30pm
 
+-rn | --restart-network
+restart network if host file is updated
+
 -wd | --work-days [1|0]
 1 = Mon–Fri only, 0 = every day
 
@@ -73,6 +84,18 @@ pass work start time in 24h format, e.g 09:00
 
 -we | --work-end)
 pass work end time in 24h format, e.g 17:00
+
+-ue | --update-extensions "ext1 ext2"
+Main hosts extensions
+
+-uf | --update-flags "--nogendata --auto"
+Main hosts flags
+
+-we | --work-extensions "ext1 ext2"
+Work hosts extensions
+
+-wf | --work-flags "--nogendata --auto"
+Work hosts flags
 
 _EOF_
 }
@@ -159,9 +182,25 @@ generate_hosts_files () {
     fi
 }
 
+run_update_hosts() {
+    local extensions="$1"
+    local flags="$2"
+
+    local cmd=(python updateHostsFile.py --output "$MY_HOSTS_DIR")
+    if [[ "$extensions" != "none" && -n "$extensions" ]]; then
+        read -r -a exts <<< "$extensions"
+        cmd+=(--extensions "${exts[@]}")
+    fi
+
+    read -r -a extra_flags <<< "$flags"
+    cmd+=("${extra_flags[@]}")
+
+    log "Running: ${cmd[*]}"
+    "${cmd[@]}"
+}
 
 generate_work_hosts_file () {
-    python updateHostsFile.py --output "$MY_HOSTS_DIR" --extensions fakenews gambling porn --nogendata --auto
+    run_update_hosts "${WORK_UPDATE_EXTENSIONS:-$UPDATE_EXTENSIONS}" "${WORK_UPDATE_FLAGS:-$UPDATE_FLAGS}"
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.work" || exit 1
 
     if [[ -e "$MY_HOSTS_DIR/myhosts.work" ]]; then
@@ -174,7 +213,7 @@ generate_work_hosts_file () {
 
 
 generate_main_hosts_file () {
-    python updateHostsFile.py --output "$MY_HOSTS_DIR" --extensions fakenews gambling porn --nogendata --auto
+    run_update_hosts "$UPDATE_EXTENSIONS" "$UPDATE_FLAGS"
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.main" || exit 1
 
     if [[ -e "$MY_HOSTS_DIR/myhosts" ]]; then
@@ -288,6 +327,8 @@ main() {
         mkdir -p "$MY_HOSTS_DIR"
     fi
 
+    read_config
+
     while [[ $# -gt 0 ]]; do
         case "$1" in
             # override variables
@@ -304,14 +345,31 @@ main() {
                 WORK_END="$2"
                 shift
                 ;;
-
+            -ue|--update-extensions)
+                UPDATE_EXTENSIONS="$2"
+                shift
+                ;;
+            -uf|--update-flags)
+                UPDATE_flags="$2"
+                shift
+                ;;
+            -we|--work-extensions)
+                UPDATE_EXTENSIONS="$2"
+                shift
+                ;;
+            -wu|--work-flags)
+                UPDATE_FLAGS="$2"
+                shift
+                ;;
+            -rn|--restart-network)
+                RESTART_NETWORK=true
+                ;;
             # tasks
             -h|--help)
                 usage
                 exit 0
                 ;;
             -a|--auto)
-                read_config
                 my_hosts_file="$(determine_hosts_file)"
                 ;;
             -w|--work)
@@ -358,8 +416,11 @@ main() {
     if [[ "$my_hosts_file" != "$PREV" ]]; then
         log "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
         sudo cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
-        log "restarting network manager to flush dns cache"
-        #sudo systemctl restart NetworkManager
+
+        if [[ "$RESTART_NETWORK" = true ]]; then
+            log "restarting network manager to flush dns cache"
+            sudo systemctl restart NetworkManager
+        fi
         log "$my_hosts_file" > "$STATE_FILE"
     else
         log "hosts file already correct: ($my_hosts_file)"

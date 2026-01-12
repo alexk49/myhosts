@@ -8,3 +8,11 @@ WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
 # Work hours (24h format)
 WORK_START=09:00
 WORK_END=16:30
+
+# updateHostFiles extensions and flags
+
+UPDATE_EXTENSIONS="fakenews gambling porn"
+UPDATE_FLAGS="--nogendata --auto"
+
+WORK_UPDATE_EXTENSIONS="fakenews gambling porn social"
+WORK_UPDATE_FLAGS=""
