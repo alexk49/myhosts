@@ -1,0 +1,10 @@
+# store this in ~/.local/share/myhosts/myhosts.conf
+
+# this can be used to override the timer variables
+
+# Enable weekday-only work mode
+WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
+
+# Work hours (24h format)
+WORK_START=09:00
+WORK_END=16:30

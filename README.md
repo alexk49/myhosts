@@ -123,3 +123,56 @@ You will want to do this now and again to get the updated block lists.
 ## timers
 
 Once you have two hosts files you are happy with you might want to make different ones get used at different times of day, for example using the .work hosts file during work hours and the main hosts file the rest of the time.
+
+The default work hours are 09:00 to 16:30. To update these, you can either place a .config file in ~/.local/share/myhosts to specify the times:
+
+```
+cp myhosts.conf.example ~/.local/share/myhosts/myhosts.conf
+```
+
+You just need to specify the variables in the format:
+```
+# Enable weekday-only work mode
+WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
+
+# Work hours (24h format)
+WORK_START=08:00
+WORK_END=17:00
+```
+
+Or these can be overriden with cli args but you must put the variable args first:
+
+```
+set-hosts --work-start 08:00 --work-end 16:00 --auto
+```
+
+You can set up a cronjobs like:
+
+```
+crontab -e 
+
+# Start of work hours
+0 9 * * 1-5 /home/you/.local/bin/set-hosts --auto
+
+# End of work hours
+30 16 * * 1-5 /home/you/.local/bin/set-hosts --auto
+
+# run on reboot
+@reboot /home/you/.local/bin/set-hosts --auto
+```
+
+An additional option is to set it to run as an autostart script. This should work as an alternative to the cron reboot.
+
+```
+touch ~/.config/autostart/set-hosts-auto.desktop
+```
+
+Then copy in:
+
+```
+[Desktop Entry]
+Type=Application
+Name=Set Hosts (Auto)
+Exec=/home/you/.local/bin/set-hosts --auto
+X-GNOME-Autostart-enabled=true
+```

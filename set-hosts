@@ -16,12 +16,13 @@ SB_HOSTS_DIR="$HOME/.local/share/stevenblack-hosts"
 # created host files and custom host files:
 MY_HOSTS_DIR="$HOME/.local/share/myhosts"
 
-# set default value that can be updated by cli
+# set default value that can be overriden with config/cli
 
 # regenerate specified host file
 get_hosts=false
 
-# timer
+# timer settings for auto mode
+
 # Enable weekday-only work mode
 WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
 
@@ -54,17 +55,36 @@ clone steven black hosts repo and generate both hosts files
 -u | --update
 update existing repo and all host files
 
+# variables overrides
+
+These need to be passed before the task flag, for example:
+
+./set-hosts --work-start 08:00 --work-end 16:00 --auto
+
+when running --auto the hosts file will be set based on a timer
+
+This will default to work being Mon-Fri 8.30am to 16.30pm
+
+-wd | --work-days [1|0]
+1 = Mon–Fri only, 0 = every day
+
+-ws | --work-start [work-start-time]
+pass work start time in 24h format, e.g 09:00
+
+-we | --work-end)
+pass work end time in 24h format, e.g 17:00
+
 _EOF_
 }
 
 
 clone_sb_repo () {
-    echo "fetching hosts files"
+    log "fetching hosts files"
         
     SB_HOSTS_DIR="$1"
 
     if [[ ! -e "$SB_HOSTS_DIR" ]]; then 
-        echo "cloning repo into $SB_HOSTS_DIR"
+        log "cloning repo into $SB_HOSTS_DIR"
         git clone --depth 1 https://github.com/StevenBlack/hosts.git "$SB_HOSTS_DIR"
     fi
 }
@@ -89,7 +109,7 @@ set_activation_path () {
     if [[ -f "$venv/bin/activate" ]]; then
         ACTIVATE_PATH="$venv/bin/activate"
     else
-        echo "Error: No venv activation script found in $venv" >&2
+        log "Error: No venv activation script found in $venv" >&2
         exit 1
     fi
 
@@ -105,24 +125,24 @@ set_up_venv () {
     elif command -v python >/dev/null 2>&1; then
         PYTHON=python
     else
-        echo "Error: Python is not installed or not in PATH." >&2
+        log "Error: Python is not installed or not in PATH." >&2
         exit 1
     fi
 
-    echo "Using python executable: $PYTHON"
+    log "Using python executable: $PYTHON"
 
     if [[ -d "$venv" ]]; then
-        echo "Virtual environment '$venv' already exists."
+        log "Virtual environment '$venv' already exists."
         set_activation_path
         return
     else
-        echo "Creating virtual environment: $venv"
-        "$PYTHON" -m venv "$venv" || { echo "Failed to create venv."; exit 1; }
+        log "Creating virtual environment: $venv"
+        "$PYTHON" -m venv "$venv" || { log "Failed to create venv."; exit 1; }
     fi
     
     set_activation_path
 
-    echo "installing requirements"
+    log "installing requirements"
     pip install --upgrade pip >/dev/null 2>&1
     pip install -r requirements.txt
 }
@@ -130,7 +150,7 @@ set_up_venv () {
 
 generate_hosts_files () {
     my_hosts_file="$1"
-    echo "generating hosts files"
+    log "generating hosts files"
 
     if [[ "$my_hosts_file" == *.work ]]; then
         generate_work_hosts_file        
@@ -145,9 +165,9 @@ generate_work_hosts_file () {
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.work" || exit 1
 
     if [[ -e "$MY_HOSTS_DIR/myhosts.work" ]]; then
-        echo "adding custom hosts local"
+        log "adding custom hosts local"
         cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.work"
-        echo "adding custom work hosts"
+        log "adding custom work hosts"
         cat "$MY_HOSTS_DIR/myhosts.work" >> "$MY_HOSTS_DIR/hosts.work"
     fi
 }
@@ -158,7 +178,7 @@ generate_main_hosts_file () {
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.main" || exit 1
 
     if [[ -e "$MY_HOSTS_DIR/myhosts" ]]; then
-        echo "adding custom hosts"
+        log "adding custom hosts"
         cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.main"
     fi
 }
@@ -194,6 +214,28 @@ is_weekday() {
     (( d >= 1 && d <= 5 ))
 }
 
+is_holiday() {
+    local HOLIDAYS_FILE="$MY_HOSTS_DIR/holidays.conf"
+
+    [[ -f "$HOLIDAYS_FILE" ]] || return 1
+
+    local today
+    today=$(date +%F)
+    local md
+    md=$(date +%m-%d)
+
+    while read -r line; do
+        case "$line" in
+            "$today"|"$md")
+                log "today is holiday, default host file will be used"
+                return 0
+                ;;
+        esac
+    done < <(grep -Ev '^\s*(#|$)' "$HOLIDAYS_FILE")
+
+    return 1
+}
+
 
 determine_hosts_file() {
     # determine which host file to use based on time
@@ -205,21 +247,39 @@ determine_hosts_file() {
 
     if (( NOW >= START && NOW < END )); then
         if [[ "${WORK_DAYS:-0}" -eq 1 ]]; then
-            if is_weekday; then
+            if is_weekday && ! is_holiday; then
                 my_hosts_file="$MY_HOSTS_DIR/hosts.work"
             fi
         else
-            my_hosts_file="$MY_HOSTS_DIR/hosts.work"
+            if ! is_holiday; then
+                my_hosts_file="$MY_HOSTS_DIR/hosts.work"
+            fi
         fi
     fi
-
     echo "$my_hosts_file"
+}
+
+
+read_config() {
+    CONFIG="$MY_HOSTS_DIR/myhosts.conf"
+
+    if [[ -e "$CONFIG" ]]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG"
+    fi
+}
+
+
+log() {
+    # make sure log statements go to stderr
+    # so normal echoes can be used for returns etc.
+    echo "$(date '+%F %T') $*" >&2
 }
 
 
 main() {
     if [[ $# -eq 0 ]]; then
-        echo "No arguments supplied"
+        log "No arguments supplied"
         usage
         exit 1
     fi
@@ -230,11 +290,28 @@ main() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            # override variables
+            # which can also be done in config file
+            -wd|--work-days)
+                WORK_DAYS="$2"
+                shift
+                ;;
+            -ws|--work-start)
+                WORK_START="$2"
+                shift
+                ;;
+            -we|--work-end)
+                WORK_END="$2"
+                shift
+                ;;
+
+            # tasks
             -h|--help)
                 usage
                 exit 0
                 ;;
             -a|--auto)
+                read_config
                 my_hosts_file="$(determine_hosts_file)"
                 ;;
             -w|--work)
@@ -262,12 +339,12 @@ main() {
     done
 
     if [[ -z "${my_hosts_file+x}" ]]; then
-        echo "no hosts file specified, please run with either --default or --work to specifiy file or with --auto to use timer."
+        log "no hosts file specified, please run with either --default or --work to specifiy file or with --auto to use timer."
         exit 1
     fi
 
     if [[ ! -e "$my_hosts_file" && "$get_hosts" = false ]]; then
-        echo "hosts file does not exist: $my_hosts_file - run with --get|-g to recreate specified hosts file, or run with --setup|-s to clone repo re-generate all files"
+        log "hosts file does not exist: $my_hosts_file - run with --get|-g to recreate specified hosts file, or run with --setup|-s to clone repo re-generate all files"
         exit 1
     elif [[ "$get_hosts" = true ]]; then
         cd "$SB_HOSTS_DIR" || exit 1
@@ -279,13 +356,13 @@ main() {
     [[ -f "$STATE_FILE" ]] && PREV=$(cat "$STATE_FILE")
 
     if [[ "$my_hosts_file" != "$PREV" ]]; then
-        echo "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
+        log "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
         sudo cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
-        echo "restarting network manager to flush dns cache"
+        log "restarting network manager to flush dns cache"
         #sudo systemctl restart NetworkManager
-        echo "$my_hosts_file" > "$STATE_FILE"
+        log "$my_hosts_file" > "$STATE_FILE"
     else
-        echo "hosts file already correct: ($my_hosts_file)"
+        log "hosts file already correct: ($my_hosts_file)"
     fi
 }
 
