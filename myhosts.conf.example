@@ -16,3 +16,5 @@ UPDATE_FLAGS="--nogendata --auto"
 
 WORK_UPDATE_EXTENSIONS="fakenews gambling porn social"
 WORK_UPDATE_FLAGS=""
+
+RESTART_NETWORK=false

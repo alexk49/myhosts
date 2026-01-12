@@ -3,10 +3,6 @@
 # wrapper script to manage two different host files
 # based on stevenblack's hosts repo
 
-# after updating hosts, you may need to flush dns cache,
-# by restarting the NetworkManager, on ubuntu run:
-# sudo systemctl restart NetworkManager
-
 set -euo pipefail
 
 # steven black's host repo and scripts
@@ -74,7 +70,7 @@ when running --auto the hosts file will be set based on a timer
 This will default to work being Mon-Fri 8.30am to 16.30pm
 
 -rn | --restart-network
-restart network if host file is updated
+restart network if host file is updated, to flush DNS cache
 
 -wd | --work-days [1|0]
 1 = Mon–Fri only, 0 = every day
@@ -182,6 +178,7 @@ generate_hosts_files () {
     fi
 }
 
+
 run_update_hosts() {
     local extensions="$1"
     local flags="$2"
@@ -198,6 +195,7 @@ run_update_hosts() {
     log "Running: ${cmd[*]}"
     "${cmd[@]}"
 }
+
 
 generate_work_hosts_file () {
     run_update_hosts "${WORK_UPDATE_EXTENSIONS:-$UPDATE_EXTENSIONS}" "${WORK_UPDATE_FLAGS:-$UPDATE_FLAGS}"

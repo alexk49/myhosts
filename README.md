@@ -167,12 +167,10 @@ An additional option is to set it to run as an autostart script. This should wor
 touch ~/.config/autostart/set-hosts-auto.desktop
 ```
 
-Then copy in:
-
 ```
-[Desktop Entry]
+echo '[Desktop Entry]
 Type=Application
 Name=Set Hosts (Auto)
-Exec=/home/you/.local/bin/set-hosts --auto
-X-GNOME-Autostart-enabled=true
+Exec="$HOME/.local/bin/myhosts" --auto
+X-GNOME-Autostart-enabled=true' >> ~/.config/autostart/myhosts.desktop
 ```
