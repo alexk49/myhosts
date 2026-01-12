@@ -11,8 +11,10 @@ set -e
 set -u
 set -o pipefail
 
-# steven black's host scripts stored at ~/.local/share
+# steven black's host repo and scripts
 SB_HOSTS_DIR="$HOME/.local/share/stevenblack-hosts"
+# created host files and custom host files:
+MY_HOSTS_DIR="$HOME/.local/share/myhosts"
 
 usage () {
     cat << _EOF_
@@ -116,25 +118,25 @@ generate_hosts_files () {
 }
 
 generate_work_hosts_file () {
-    #python updateHostsFile.py --output ~/.hosts --extensions fakenews gambling porn social --nogendata --auto
-    python updateHostsFile.py --output ~/.hosts --extensions fakenews gambling porn --nogendata --auto
-    cp -v ~/.hosts/hosts ~/.hosts/hosts.work || exit 1
+    #python updateHostsFile.py --output ~/.local/share/myhosts --extensions fakenews gambling porn social --nogendata --auto
+    python updateHostsFile.py --output "$MY_HOSTS_DIR/myhosts" --extensions fakenews gambling porn --nogendata --auto
+    cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.work" || exit 1
 
-    if [[ -e ~/.hosts/myhosts.work ]]; then
+    if [[ -e "$MY_HOSTS_DIR/myhosts.work" ]]; then
         echo "adding custom hosts local"
-        cat ~/.hosts/myhosts >> ~/.hosts/hosts.work
+        cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.work"
         echo "adding custom work hosts"
-        cat ~/.hosts/myhosts.work >> ~/.hosts/hosts.work
+        cat "$MY_HOSTS_DIR/myhosts.work" >> "$MY_HOSTS_DIR/hosts.work"
     fi
 }
 
 generate_main_hosts_file () {
-    python updateHostsFile.py --output ~/.hosts --extensions fakenews gambling porn --nogendata --auto
-    cp -v ~/.hosts/hosts ~/.hosts/hosts.main || exit 1
+    python updateHostsFile.py --output "$MY_HOSTS_DIR/myhosts" --extensions fakenews gambling porn --nogendata --auto
+    cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.main" || exit 1
 
-    if [[ -e ~/.hosts/myhosts ]]; then
+    if [[ -e "$MY_HOSTS_DIR/myhosts" ]]; then
         echo "adding custom hosts"
-        cat ~/.hosts/myhosts >> ~/.hosts/hosts.main
+        cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.main"
     fi
 }
 
@@ -157,6 +159,10 @@ main() {
         exit 1
     fi
 
+    if [[ ! -e "$MY_HOSTS_DIR/myhosts" ]]; then
+        mkdir -p "$MY_HOSTS_DIR/myhosts"
+    fi
+
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h|--help)
@@ -164,10 +170,10 @@ main() {
                 exit 0
                 ;;
             -w|--work)
-                my_hosts_file="$HOME/.hosts/hosts.work"
+                my_hosts_file="$MY_HOSTS_DIR/hosts.work"
                 ;;
             -d|--default)
-                my_hosts_file="$HOME/.hosts/hosts.main"
+                my_hosts_file="$MY_HOSTS_DIR/myhosts/hosts.main"
                 ;;
             -g|--get)
                 get_hosts=true
