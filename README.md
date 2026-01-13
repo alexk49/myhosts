@@ -8,8 +8,26 @@ The has been tested on Ubuntu 24.04.3 LTS only but linux distributions with /etc
 
 The script will set up and manage the Steven Black Hosts repo in .local/share so just download the script:
 
+Download the file:
+
 ```
-wget 
+# download script
+wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts -O ~/.local/bin/myhosts
+# set executable permissions
+chmod +x ~/.local/bin/myhosts
+```
+
+```
+# download config if wanted
+mkdir -p ~/.local/share/myhosts
+wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts.conf.example -O ~/.local/share/myhosts/myhosts.conf
+```
+
+Or clone the repo:
+
+```
+cd ~/.local/share
+git clone https://github.com/alexk49/myhosts.git
 ```
 
 ## custom host files
@@ -28,6 +46,7 @@ The custom host files should follow the same rules outlined in the Steven Black 
 
 ```
 0.0.0.0 site-to-block
+
 # e.g block reddit:
 0.0.0.0 reddit.com
 ```
@@ -69,6 +88,8 @@ This will create the following files in ~/.local/share/myhosts:
 hosts  hosts.main  hosts.work
 ```
 
+The hosts file in this directory is just the output of the updateHostsFile.py script.
+
 Before modifying your system hosts file, back it up:
 
 ```
@@ -88,7 +109,7 @@ You can then further customise your myhosts file - that is used for both the wor
 
 # usage
 
-The script requires sudo permissions to make changes to the system hosts file - and to restart the Network Manager to flush the DNS cache after changing the system hosts file.
+The script requires sudo permissions to make changes to the system hosts file - and, if the flag is passed, to restart the Network Manager to flush the DNS cache after changing the system hosts file.
 
 Once the two files have been generated through the set up, you can toggle the hosts file used as the system hosts with:
 
@@ -124,7 +145,7 @@ You will want to do this now and again to get the updated block lists.
 
 Once you have two hosts files you are happy with you might want to make different ones get used at different times of day, for example using the .work hosts file during work hours and the main hosts file the rest of the time.
 
-The default work hours are 09:00 to 16:30. To update these, you can either place a .config file in ~/.local/share/myhosts to specify the times:
+The default work hours are 09:00 to 16:30. To update these, you can either use a .config file in to specify the times or override via cli args.
 
 ```
 cp myhosts.conf.example ~/.local/share/myhosts/myhosts.conf
@@ -141,51 +162,104 @@ WORK_START=08:00
 WORK_END=17:00
 ```
 
-Or these can be overriden with cli args but you must put the variable args first:
+With cli args but you must put the variable args first, before the task flag like:
 
 ```
 myhosts --work-start 08:00 --work-end 16:00 --auto
 ```
 
-You can set up a cronjobs like the below:
+The default location for the myhosts directory - where the host files will be generated and updated is:
 
 ```
-crontab -e 
+~/.local/share/myhosts
+```
 
-# Start of work hours
-0 9 * * 1-5 /home/you/.local/bin/myhosts --auto
+and the default location for the copied Steven Black repo is:
+```
+~/.local/share/stevenblack-hosts/
+```
+
+These can be overriden at run time by defining the environment variables before running:
+
+```
+export MY_HOSTS_DIR=/some/custom/path
+export SB_HOSTS_DIR=/some/custom/path 
+```
+
+This is useful if you want to set the script to fully run as root, which means the custom host files can only be edited or made by root.
+
+## User timer set up
+
+The below is the set up you can follow to keep the custom host files in the default user directory:
+
+```
+~/.local/share/myhosts
+```
+
+You can set up cronjobs like the below:
+
+```
+# open user cron
+crontab -e 
+```
+
+Set up cronjobs like the below:
+
+```
+SHELL=/bin/bash
+
+# start of work
+30 8 * * 1-5 /home/you/.local/bin/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 
 # End of work hours
-30 16 * * 1-5 /home/you/.local/bin/myhosts --auto
+30 16 * * 1-5 /home/you/.local/bin/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 
-# run on reboot
-@reboot /home/you/.local/bin/myhosts --auto
-
-# update host files repo once week
-30 9 * * 1 /home/you/.local/bin/myhosts --update 
+# update host files repo once a week
+30 9 * * 1 /home/you/.local/bin/myhosts --update >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 ```
 
 An additional option is to set it to run as an autostart script. This should work as an alternative to the cron reboot.
 
+For lxqt:
+
 ```
 echo '[Desktop Entry]
-Exec=/home/"$USER"/.local/bin/set-hosts --auto"
-Icon=dialog-scripts
-Name=myhosts
 Type=Application
-X-KDE-AutostartScript=true' >> ~/.config/autostart/myhosts.desktop
+Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
+Hidden=false
+NoDisplay=false
+X-LXQt-Autostart-enabled=true
+Name=myhosts
+Comment=Copy hosts file at login
+Version=1.0' >> ~/.config/autostart/myhosts.desktop
+```
+
+For kde:
+
+```
+echo '[Desktop Entry]
+Type=Application
+Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
+Hidden=false
+NoDisplay=false
+X-KDE-AutostartScript=true
+Name=myhosts
+Comment=Copy hosts file at login
+Version=1.0' >> ~/.config/autostart/myhosts.desktop
 ```
 
 This will make the script run upon every login.
 
-If running this way then you may want to have passwordless sudo set up for your user or set it just for this script by adding it as visudo entry (but updating 'you' to your actual username):
+If running this way then you may want to have passwordless sudo set up for your user or set it just for this script by adding it as visudo entry (but updating 'you' to your actual username).
 
+Open visudo entry:
 ```
 sudo visudo -f /etc/sudoers.d/myhosts
-
-you ALL=(root) NOPASSWD: \
-    /home/you/.local/bin/myhosts, \
-    /usr/bin/cp, \
-    /usr/bin/systemctl restart NetworkManager
 ```
 
+Copy into file:
+
+```
+# Allow user to copy any hosts file from .local/share/myshare to /etc/hosts without password
+you ALL=(root) NOPASSWD: /usr/bin/cp -v /home/you/.local/share/myhosts/hosts.* /etc/hosts --backup --suffix=.bak
+```

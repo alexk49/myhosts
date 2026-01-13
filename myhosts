@@ -5,10 +5,11 @@
 
 set -euo pipefail
 
-# steven black's host repo and scripts
-SB_HOSTS_DIR="$HOME/.local/share/stevenblack-hosts"
-# created host files and custom host files:
-MY_HOSTS_DIR="$HOME/.local/share/myhosts"
+# steven black's hosts repo, with default fallback value
+: "${SB_HOSTS_DIR:=$HOME/.local/share/stevenblack-hosts}"
+
+# created host files and custom host files - with default fallback value
+: "${MY_HOSTS_DIR:=$HOME/.local/share/myhosts}"
 
 # set default value that can be overriden with config/cli
 
@@ -191,6 +192,8 @@ run_update_hosts() {
 
     read -r -a extra_flags <<< "$flags"
     cmd+=("${extra_flags[@]}")
+
+    set_up_venv
 
     log "Running: ${cmd[*]}"
     "${cmd[@]}"
@@ -413,7 +416,8 @@ main() {
 
     if [[ "$my_hosts_file" != "$PREV" ]]; then
         log "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
-        sudo cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
+
+        sudo /usr/bin/cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
 
         if [[ "$RESTART_NETWORK" = true ]]; then
             log "restarting network manager to flush dns cache"
