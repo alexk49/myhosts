@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# this is separated into different script,
+# as this would be used in the system timer setup,
+# meaning this would only be run by root to apply a host file
+
+log() {
+    echo "$(date '+%F %T') $*" >&2
+}
+
+set -euo pipefail
+
+# allow my hosts dir to be overriden,
+# with environment variable
+: "${MY_HOSTS_DIR:=/var/lib/myhosts}"
+STATE="$MY_HOSTS_DIR/.hosts-current"
+
+if [[ ! -f "$STATE" ]]; then
+    log "state file missing; nothing to apply"
+    exit 0
+fi
+
+my_hosts_file="$MY_HOSTS_DIR/$(cat "$STATE")"
+
+if [[ ! -f "$my_hosts_file" ]]; then
+    log "ERROR: source file does not exist: $my_hosts_file"
+    exit 1
+fi
+
+if [[ "$my_hosts_file" != "$MY_HOSTS_DIR"/hosts.* ]]; then
+    log "ERROR: source file outside allowed path: $my_hosts_file"
+    exit 1
+fi
+
+if ! grep -qE '^(127\.0\.0\.1|0\.0\.0\.0)\s+' "$my_hosts_file"; then
+    log "ERROR: $my_hosts_file does not appear to be a valid hosts file"
+    exit 1
+fi
+
+if ! cmp -s "$my_hosts_file" /etc/hosts; then
+    log "updating host file with $my_hosts_file"
+    install -m 644 "$my_hosts_file" /etc/hosts
+    # systemctl restart NetworkManager
+else
+    log "host file already set correctly"
+    exit 0
+fi
