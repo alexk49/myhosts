@@ -1,4 +1,5 @@
-# store this in ~/.local/share/myhosts/myhosts.conf
+# store this in ~/.local/share/myhosts/myhosts.conf if running as user
+# or in /var/lib/myhosts/myhosts.conf is running as system user
 
 # this can be used to override the timer variables
 
@@ -7,7 +8,7 @@ WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
 
 # Work hours (24h format)
 WORK_START=09:00
-WORK_END=16:30
+WORK_END=17:00
 
 # updateHostFiles extensions and flags
 
