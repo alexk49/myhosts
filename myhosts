@@ -5,11 +5,17 @@
 
 set -euo pipefail
 
+# default values that can be overriden by .env variables
+
 # steven black's hosts repo, with default fallback value
 : "${SB_HOSTS_DIR:=$HOME/.local/share/stevenblack-hosts}"
 
 # created host files and custom host files - with default fallback value
 : "${MY_HOSTS_DIR:=$HOME/.local/share/myhosts}"
+
+# apply mode is sudo | external | none
+# this allows easy separation when run as system user
+: "${APPLY_MODE:=sudo}"
 
 # set default value that can be overriden with config/cli
 
@@ -26,14 +32,14 @@ WORK_DAYS=1            # 1 = Mon–Fri only, 0 = every day
 
 # Work hours (24h format)
 WORK_START=09:00
-WORK_END=16:30
+WORK_END=17:00
 
 # updateHostsFile.py default options
 
 UPDATE_EXTENSIONS="fakenews gambling porn"
 UPDATE_FLAGS="--nogendata --auto"
 
-WORK_UPDATE_EXTENSIONS=""
+WORK_UPDATE_EXTENSIONS="fakenews gambling porn social"
 WORK_UPDATE_FLAGS=""
 
 usage () {
@@ -88,7 +94,7 @@ Main hosts extensions
 -uf | --update-flags "--nogendata --auto"
 Main hosts flags
 
--we | --work-extensions "ext1 ext2"
+-wex | --work-extensions "ext1 ext2"
 Work hosts extensions
 
 -wf | --work-flags "--nogendata --auto"
@@ -138,7 +144,7 @@ set_activation_path () {
 
 
 set_up_venv () {
-    venv=.venv
+    venv="$SB_HOSTS_DIR/.venv"
 
     if command -v python3 >/dev/null 2>&1; then
         PYTHON=python3
@@ -205,10 +211,13 @@ generate_work_hosts_file () {
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.work" || exit 1
 
     if [[ -e "$MY_HOSTS_DIR/myhosts.work" ]]; then
-        log "adding custom hosts local"
-        cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.work"
         log "adding custom work hosts"
         cat "$MY_HOSTS_DIR/myhosts.work" >> "$MY_HOSTS_DIR/hosts.work"
+    fi
+
+    if [[ -e "$MY_HOSTS_DIR/myhosts.main" ]]; then
+        log "adding custom hosts local"
+        cat "$MY_HOSTS_DIR/myhosts.main" >> "$MY_HOSTS_DIR/hosts.work"
     fi
 }
 
@@ -217,9 +226,9 @@ generate_main_hosts_file () {
     run_update_hosts "$UPDATE_EXTENSIONS" "$UPDATE_FLAGS"
     cp -v "$MY_HOSTS_DIR/hosts" "$MY_HOSTS_DIR/hosts.main" || exit 1
 
-    if [[ -e "$MY_HOSTS_DIR/myhosts" ]]; then
+    if [[ -e "$MY_HOSTS_DIR/myhosts.main" ]]; then
         log "adding custom hosts"
-        cat "$MY_HOSTS_DIR/myhosts" >> "$MY_HOSTS_DIR/hosts.main"
+        cat "$MY_HOSTS_DIR/myhosts.main" >> "$MY_HOSTS_DIR/hosts.main"
     fi
 }
 
@@ -234,6 +243,28 @@ run_setup () {
     generate_work_hosts_file
 
     generate_main_hosts_file
+}
+
+
+apply_hosts() {
+    case "$APPLY_MODE" in
+        sudo)
+            log "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
+            sudo /usr/bin/cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
+            [[ "$RESTART_NETWORK" = true ]] && sudo systemctl restart NetworkManager
+            ;;
+        external)
+            # systemd or root helper applies based on state file
+            log "hosts file updated; external apply mechanism expected"
+            ;;
+        none)
+            log "apply disabled; not modifying /etc/hosts"
+            ;;
+        *)
+            log "Unknown APPLY_MODE: $APPLY_MODE"
+            exit 1
+            ;;
+    esac
 }
 
 
@@ -355,11 +386,11 @@ main() {
                 shift
                 ;;
             -wex|--work-extensions)
-                UPDATE_EXTENSIONS="$2"
+                WORK_UPDATE_EXTENSIONS="$2"
                 shift
                 ;;
-            -wu|--work-flags)
-                UPDATE_FLAGS="$2"
+            -wf|--work-flags)
+                WORK_UPDATE_FLAGS="$2"
                 shift
                 ;;
             -rn|--restart-network)
@@ -414,16 +445,14 @@ main() {
     PREV=""
     [[ -f "$STATE_FILE" ]] && PREV=$(cat "$STATE_FILE")
 
-    if [[ "$my_hosts_file" != "$PREV" ]]; then
-        log "copying hosts file: $my_hosts_file to system hosts file: /etc/hosts"
+    my_host_file_basename="$(basename "$my_hosts_file")"
 
-        sudo /usr/bin/cp -v "$my_hosts_file" /etc/hosts --backup --suffix=.bak
-
-        if [[ "$RESTART_NETWORK" = true ]]; then
-            log "restarting network manager to flush dns cache"
-            sudo systemctl restart NetworkManager
-        fi
-        log "$my_hosts_file" > "$STATE_FILE"
+    if [[ "$my_host_file_basename" != "$PREV" ]]; then
+        log "updating state file: $my_hosts_file_basename for next change"
+        # state file is always updated for sake
+        # of systemd updates
+        echo "$my_host_file_basename" > "$STATE_FILE"
+        apply_hosts
     else
         log "hosts file already correct: ($my_hosts_file)"
     fi
