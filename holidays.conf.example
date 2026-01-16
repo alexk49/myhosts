@@ -1,0 +1,16 @@
+# used to give holidays from the work blocklist
+# if a holiday is matched then the main blocklist will be used.
+
+# This file should be copied to your MY_HOSTS_DIR,
+# likely either ~/.local/share/myhosts if installed as user, or /var/lib/myhosts if installed as system user
+
+# holidays should be in yyyy-mm-dd for one off dates
+# or in mm-dd for recurring dates:
+
+# One-off holidays
+2026-01-01    # New Year's Day
+2026-04-03    # Good Friday
+
+# Recurring holidays (MM-DD)
+01-01         # New Year's Day
+12-25         # Christmas

@@ -8,7 +8,7 @@ Wrapper script for Steven Black Hosts to manage two different hosts files on a t
 
 This has been tested on Ubuntu 24.04.3 LTS only but linux distributions with /etc/hosts should work but the autostart/timer settings maybe different.
 
-## install
+## Install
 
 For general usage, the script will set up and manage the Steven Black Hosts repo in .local/share so just download the script or clone the repository.
 
@@ -357,8 +357,9 @@ Install the script into the myhosts dir:
 ```
 # cd to wherever you have first downloaded the script
 
-# add myhosts script to /usr/local/bin and set permissions
-sudo install -m 755 myhosts /usr/local/bin/myhosts
+# add myhosts script to /usr/local/libexec and set permissions
+sudo mkdir -p /usr/local/libexec
+sudo install -m 755 myhosts /usr/local/libexec/myhosts
 ```
 
 Configure environment variables for the system user:
@@ -390,7 +391,7 @@ Run setup as myhosts user:
 
 ```
 sudo -u myhosts env $(sudo cat /var/lib/myhosts/myhosts.env | xargs) \
-  /usr/local/bin/myhosts --setup
+  /usr/local/libexec/myhosts --setup
 ```
 
 This will clone the Steven Black Repo, create a venv for running the host files script and generate the hosts.main and hosts.work files.
@@ -398,7 +399,6 @@ This will clone the Steven Black Repo, create a venv for running the host files 
 Restrict usage on the myhosts-apply helper script so that it can only be run by root:
 
 ```
-sudo mkdir -p /usr/local/libexec
 sudo install -m 755 myhosts-apply /usr/local/libexec/myhosts-apply
 sudo chown root:root /usr/local/libexec/myhosts-apply
 sudo chmod 750 /usr/local/libexec/myhosts-apply
@@ -422,7 +422,7 @@ Type=oneshot
 User=myhosts
 Group=myhosts
 EnvironmentFile=/var/lib/myhosts/myhosts.env
-ExecStart=/usr/local/bin/myhosts --auto
+ExecStart=/usr/local/libexec/myhosts --auto
 
 # use root to apply update
 PermissionsStartOnly=yes
@@ -470,13 +470,27 @@ You will want to occassionally update the Steven Black repo blocklists that are 
 
 ```
 export MY_HOSTS_DIR=/var/lib/myhosts
-sudo -u myhosts myhosts --update
+sudo -u myhosts /usr/local/libexec/myhosts --update
 ```
 
 Or create a cronjob for the system user:
 
 ```
 sudo -u myhosts crontab -e
+```
+
+Then add:
+
+```
+SHELL=/bin/bash
+PATH=/usr/bin:/bin
+
+# Weekly blocklist update (Monday 09:00)
+0 9 * * 1 \
+  MY_HOSTS_DIR=/var/lib/myhosts \
+  SB_HOSTS_DIR=/var/lib/myhosts/stevenblack-hosts \
+  MYHOSTS_APPLY_MODE=none \
+  /usr/libexec/myhosts --update >> /var/lib/myhosts/myhosts.log 2>&1
 ```
 
 Alternatively, you can also set up a systemd timer to do update of the files from the Steven Black repo. The example below will do it weekly:
@@ -491,7 +505,7 @@ Type=oneshot
 User=myhosts
 Group=myhosts
 EnvironmentFile=/var/lib/myhosts/myhosts.env
-ExecStart=/usr/local/bin/myhosts --update
+ExecStart=/usr/local/libexec/myhosts --update
 
 NoNewPrivileges=yes
 PrivateTmp=yes
@@ -623,6 +637,13 @@ Restart systemctl:
 
 ```
 sudo systemctl daemon-reload
+```
+
+Delete the exectuables:
+
+```
+sudo rm /usr/local/libexec/myhosts
+sudo rm /usr/local/libexec/myhosts-apply
 ```
 
 Delete the myhosts user and directory:

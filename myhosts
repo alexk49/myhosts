@@ -445,13 +445,13 @@ main() {
     PREV=""
     [[ -f "$STATE_FILE" ]] && PREV=$(cat "$STATE_FILE")
 
-    my_host_file_basename="$(basename "$my_hosts_file")"
+    my_hosts_file_basename="$(basename "$my_hosts_file")"
 
-    if [[ "$my_host_file_basename" != "$PREV" ]]; then
-        log "updating state file: $my_hosts_file_basename for next change"
+    if [[ "$my_hosts_file_basename" != "$PREV" ]]; then
+        log "updating state file:$my_hosts_file_basename for next change"
         # state file is always updated for sake
         # of systemd updates
-        echo "$my_host_file_basename" > "$STATE_FILE"
+        echo "$my_hosts_file_basename" > "$STATE_FILE"
         apply_hosts
     else
         log "hosts file already correct: ($my_hosts_file)"
