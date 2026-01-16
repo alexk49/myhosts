@@ -18,9 +18,9 @@ Download the file:
 
 ```
 # download script
-wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts -O ~/.local/bin/myhosts
+wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts
 # set executable permissions
-chmod +x ~/.local/bin/myhosts
+chmod +x myhosts
 ```
 
 ```
@@ -207,7 +207,9 @@ WORK_END=16:30
 
 See the myhosts.conf.example for more or for a quick start.
 
-When happy you can copy this to your myhosts dir:
+You can also set holidays from the work block list with a holidays file called holidays.conf. This is useful if you just want a break or if share a computer with someone else who doesn't need their internet access locked down to do anything! See holidays.conf.example for details.
+
+When happy you can copy the config to your myhosts dir:
 
 ```
 # user mode
@@ -215,6 +217,16 @@ cp myhosts.conf.example ~/.local/share/myhosts/myhosts.conf
 
 # system user mode
 sudo cp myhosts.conf.example /var/lib/myhosts/myhosts.conf
+```
+
+And - if using it - your holidays file as well:
+
+```
+# user mode
+cp holidays.conf.example ~/.local/share/myhosts/holidays.conf
+
+# system user mode
+sudo cp holidays.conf.example /var/lib/myhosts/holidays.conf
 ```
 
 Alternataively, you can use cli args. With cli args but you must put the variable args first, before the task flag like:
@@ -294,6 +306,7 @@ This will make the script run upon every login.
 If running this way then you will either want to have passwordless sudo set up for your user or set passwordless sudo just for this script by adding it as visudo entry.
 
 Open visudo entry:
+
 ```
 sudo visudo -f /etc/sudoers.d/myhosts
 ```
@@ -453,7 +466,20 @@ The host file can now be manually checked and updated with:
 sudo systemctl start myhosts.service
 ```
 
-Then you will want to set up a timer to do a weekly update of the files from the Steven Black repo:
+You will want to occassionally update the Steven Black repo blocklists that are used for your host file. You can either do this manually now and again:
+
+```
+export MY_HOSTS_DIR=/var/lib/myhosts
+sudo -u myhosts myhosts --update
+```
+
+Or create a cronjob for the system user:
+
+```
+sudo -u myhosts crontab -e
+```
+
+Alternatively, you can also set up a systemd timer to do update of the files from the Steven Black repo. The example below will do it weekly:
 
 ```
 sudo tee /etc/systemd/system/myhosts-update.service >/dev/null <<'EOF'
