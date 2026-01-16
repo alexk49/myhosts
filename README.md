@@ -14,7 +14,7 @@ For general usage, the script will set up and manage the Steven Black Hosts repo
 
 If you want to set up timers for the script then a different process is outlined below under timers.
 
-Download the file:
+Download the file or clone the repo:
 
 ```
 # download script
@@ -32,11 +32,12 @@ wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts.c
 Or clone the repo:
 
 ```
+mkdir -p ~/.local/share/myhosts
 cd ~/.local/share
 git clone https://github.com/alexk49/myhosts.git
 ```
 
-## custom host files
+## Custom host files
 
 The bulk of the host files are created by the Steven Black script but you can have your own custom files as well. These are kept in:
 
@@ -81,7 +82,7 @@ Which is then copied across as the main hosts file - which is backed up everytim
 /etc/hosts.bak
 ```
 
-## setup
+## Setup
 
 Clone the Steven Black Hosts repo and generate both a default and work hosts file:
 
@@ -114,7 +115,7 @@ sudo cat /etc/hosts >> ~/.local/share/myhosts/myhosts.main
 
 You can then further customise your myhosts.main file - that is used for both the work and default hosts file - as needed.
 
-# usage
+# Usage
 
 The script requires sudo permissions to make changes to the system hosts file - and, if the flag is passed, to restart the Network Manager to flush the DNS cache after changing the system hosts file.
 
@@ -148,7 +149,7 @@ myhosts --update
 
 You will want to do this now and again to get the updated block lists.
 
-## timers
+## Timers
 
 Once you have two hosts files you are happy with you might want to make different ones get used at different times of day, for example using the .work hosts file during work hours and the main hosts file the rest of the time.
 
@@ -159,7 +160,7 @@ Setting up a timer comes with a security consideration for what you would prefer
 
 Both options are detailed below. But either will require some configuration and set up.
 
-### configuration
+### Configuration
 
 Certain values can be updated with either the config file or with cli args - and custom myhosts files can be added. The config and custom files should go in the myhosts directory.
 
@@ -324,7 +325,7 @@ This is probably the simplest way to set the hosts file changes on a schedule an
 
 But, if you don't like the idea of a user owned file being copied across to the system hosts file, without password entry, then you may want to set up a more robust system user to handle the scheduling and updates.
 
-## system user
+## System user
 
 Setting up a dedicated system user to make the host files will keep the host files in a dedicated protected directory and mean the actual host file update - to /etc/hosts - can then be done in a separate root only helper script.
 
@@ -377,14 +378,20 @@ If you haven't already it is best to set up your config and custom myhosts files
 Make sure to place custom myhosts.main and myhosts.work into the system location:
 
 ```
-sudo cp myhosts.main /var/lib/myhosts.main
-sudo cp myhosts.work /var/lib/myhosts.work
+sudo cp myhosts.main /var/lib/myhosts/myhosts.main
+sudo cp myhosts.work /var/lib/myhosts/myhosts.work
 ```
 
 And set up your config in there too.
 
 ```
-sudo cp myhosts.conf /var/lib/myhosts.conf
+sudo cp myhosts.conf /var/lib/myhosts/myhosts.conf
+```
+
+And copy holidays.conf file - if you have one:
+
+```
+sudo cp holidays.conf /var/lib/myhosts/holidays.conf
 ```
 
 Run setup as myhosts user:
@@ -396,7 +403,13 @@ sudo -u myhosts env $(sudo cat /var/lib/myhosts/myhosts.env | xargs) \
 
 This will clone the Steven Black Repo, create a venv for running the host files script and generate the hosts.main and hosts.work files.
 
-Restrict usage on the myhosts-apply helper script so that it can only be run by root:
+Download the myhosts-apply helper script, if you haven't just cloned the repo:
+
+```
+wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts-apply
+```
+
+Restrict usage on the myhosts-apply helper script so that it can only be run by root, and install:
 
 ```
 sudo install -m 755 myhosts-apply /usr/local/libexec/myhosts-apply
@@ -411,7 +424,7 @@ Then we will want to set up a systemd service and timer which will selecting the
 Set up a systemd service for selecting and applying the host files:
 
 ```
-sudo tee /etc/systemd/system/myhosts-select.service >/dev/null <<'EOF'
+sudo tee /etc/systemd/system/myhosts.service >/dev/null <<'EOF'
 [Unit]
 Description=Generate and apply hosts files
 
@@ -545,7 +558,9 @@ To manually force an update to the host files - say after updating the extension
 ```
 # regenerate the files
 sudo systemctl start myhosts-update.service
+```
 
+```
 # apply whichever host file is appropriate now
 sudo systemctl start myhosts.service
 ```
