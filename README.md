@@ -1,6 +1,6 @@
 # myhosts
 
-Wrapper script for Steven Black Hosts to manage two different hosts files on a timer. This allows you to:
+Wrapper script for [Steven Black Hosts](https://github.com/StevenBlack/hosts) to manage two different hosts files on a timer. This allows you to:
 
 - block general ads/malware constantly
 - block distracting sites during work hours only.
@@ -10,7 +10,7 @@ This has been tested on Ubuntu 24.04.3 LTS only but linux distributions with /et
 
 ## Install
 
-For general usage, the script will set up and manage the Steven Black Hosts repo in .local/share so just download the script or clone the repository.
+For general usage, the script will clone, set up and manage the [Steven Black Hosts](https://github.com/StevenBlack/hosts) in .local/share/stevenblack-hosts.
 
 If you want to set up timers for the script then a different process is outlined below under timers.
 
@@ -49,7 +49,7 @@ The bulk of the host files are created by the Steven Black script but you can ha
 ~/.local/share/myhosts/myhosts.work
 ```
 
-The custom host files should follow the same rules outlined in the Steven Black hosts README, so the lines should generally look like:
+The custom host files should follow the same rules outlined in the [Steven Black hosts README](https://github.com/StevenBlack/hosts), so the lines should generally look like:
 
 ```
 0.0.0.0 site-to-block
@@ -84,7 +84,7 @@ Which is then copied across as the main hosts file - which is backed up everytim
 
 ## Setup
 
-Clone the Steven Black Hosts repo and generate both a default and work hosts file:
+To clone the Steven Black Hosts repo and generate both a default and work hosts file, run:
 
 ```
 myhosts --setup
