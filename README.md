@@ -14,7 +14,14 @@ For general usage, the script will clone, set up and manage the [Steven Black Ho
 
 If you want to set up timers for the script then a different process is outlined below under timers.
 
-Download the file or clone the repo:
+The default folder location is ~/.local/share/myhosts/ - and this would be the best place to download / clone to, unless you are following the system user set up detailed below.
+
+Clone the repo or download just the script file:
+
+```
+cd ~/.local/share
+git clone https://github.com/alexk49/myhosts.git
+```
 
 ```
 # download script
@@ -25,21 +32,12 @@ chmod +x myhosts
 
 ```
 # download config if wanted
-mkdir -p ~/.local/share/myhosts
-wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts.conf.example -O ~/.local/share/myhosts/myhosts.conf
-```
-
-Or clone the repo:
-
-```
-mkdir -p ~/.local/share/myhosts
-cd ~/.local/share
-git clone https://github.com/alexk49/myhosts.git
+wget https://raw.githubusercontent.com/alexk49/myhosts/refs/heads/main/myhosts.conf.example -O myhosts.conf
 ```
 
 ## Custom host files
 
-The bulk of the host files are created by the Steven Black script but you can have your own custom files as well. These are kept in:
+The bulk of the host files are created by the Steven Black script but you can have your own custom files as well. These are kept in ~/.local/share/myhosts by default, so will look like:
 
 ```
 # custom default hosts file used by default and work
@@ -55,7 +53,7 @@ The custom host files should follow the same rules outlined in the [Steven Black
 0.0.0.0 site-to-block
 
 # e.g block reddit:
-0.0.0.0 reddit.com
+0.0.0.0 www.reddit.com
 ```
 
 The generated hosts files will be created in the same directory:
@@ -63,6 +61,7 @@ The generated hosts files will be created in the same directory:
 ```
 # default hosts file
 ~/.local/share/myhosts/hosts.main
+
 # work hosts file
 ~/.local/share/myhosts/hosts.work
 ```
@@ -73,11 +72,12 @@ Whenever you run the script to change hosts the in use file will be set in:
 ~/.local/share/myhosts/hosts
 ```
 
-Which is then copied across as the main hosts file - which is backed up everytime it is changed.
+Which is then copied across as the main hosts file - which is backed up every time it is changed.
 
 ```
 # main system hosts file
 /etc/hosts
+
 # back up version
 /etc/hosts.bak
 ```
@@ -230,7 +230,7 @@ cp holidays.conf.example ~/.local/share/myhosts/holidays.conf
 sudo cp holidays.conf.example /var/lib/myhosts/holidays.conf
 ```
 
-Alternataively, you can use cli args. With cli args but you must put the variable args first, before the task flag like:
+Alternatively, you can use cli args. With cli args but you must put the variable args first, before the task flag like:
 
 ```
 myhosts --work-start 08:30 --work-end 16:30 --auto
@@ -270,7 +270,7 @@ SHELL=/bin/bash
 @reboot /home/you/.local/share/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 ```
 
-An additional option is to set myhosts to run as an autostart script. This should replace the cron reboot option in the above - and is preferable as then it will update on every login instead of just full restart.
+An additional option is to set myhosts to run as an autostart script. This should replace the cron reboot option in the above - and maybe preferable as then it will update on every login instead of just full restart. Please note, this will not run every time you unlock the PC - and the system user set up should be considered as the more robust option there.
 
 One line of the autostart config will depend on your desktop environment.
 
@@ -624,6 +624,12 @@ And remove the autostart config:
 rm ~/.config/autostart/myhosts.desktop
 ```
 
+Remove the custom sudoers file:
+
+```
+sudo rm /etc/sudoers.d/myhosts
+```
+
 If you have set up the system user then there is more to remove.
 
 Stop systemd services and timers:
@@ -658,7 +664,7 @@ Restart systemctl:
 sudo systemctl daemon-reload
 ```
 
-Delete the exectuables:
+Delete the executables:
 
 ```
 sudo rm /usr/local/libexec/myhosts
@@ -672,4 +678,4 @@ sudo userdel myhosts
 sudo rm -rf /var/lib/myhosts
 ```
 
-After uninstalling, you may want to manually edit or retore your system hosts file at /etc/hosts.
+After uninstalling, you may want to manually edit or restore your system hosts file at /etc/hosts.
