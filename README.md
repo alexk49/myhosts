@@ -277,7 +277,8 @@ One line of the autostart config will depend on your desktop environment.
 For kde:
 
 ```
-echo '[Desktop Entry]
+tee ~/.config/autostart/myhosts.desktop >/dev/null <<EOF
+[Desktop Entry]
 Type=Application
 Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
 Hidden=false
@@ -285,13 +286,15 @@ NoDisplay=false
 X-KDE-AutostartScript=true
 Name=myhosts
 Comment=Copy hosts file at login
-Version=1.0' >> ~/.config/autostart/myhosts.desktop
+Version=1.0
+EOF
 ```
 
 For lxqt:
 
 ```
-echo '[Desktop Entry]
+tee ~/.config/autostart/myhosts.desktop >/dev/null <<EOF
+[Desktop Entry]
 Type=Application
 Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
 Hidden=false
@@ -299,7 +302,8 @@ NoDisplay=false
 X-LXQt-Autostart-enabled=true
 Name=myhosts
 Comment=Copy hosts file at login
-Version=1.0' >> ~/.config/autostart/myhosts.desktop
+Version=1.0'
+EOF
 ```
 
 This will make the script run upon every login.

@@ -1,2 +1,8 @@
 holidays.conf
 myhosts.conf
+hosts
+hosts.main
+hosts.work
+*.log
+myhosts.main
+myhosts.work
