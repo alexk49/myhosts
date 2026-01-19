@@ -257,17 +257,17 @@ Set up cronjobs like the below, updating "you" to your actual username:
 SHELL=/bin/bash
 
 # start of work
-30 8 * * 1-5 /home/you/.local/bin/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
+30 8 * * 1-5 /home/you/.local/share/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 
 # End of work hours
-30 16 * * 1-5 /home/you/.local/bin/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
+30 16 * * 1-5 /home/you/.local/share/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 
 # update host files repo once a week
-30 9 * * 1 /home/you/.local/bin/myhosts --update >> /home/you/.local/share/myhosts/myhosts.log 2>&1
+30 9 * * 1 /home/you/.local/share/myhosts --update >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 
 # on system reboot
 # don't use this one if you set up the autostart below
-@reboot /home/you/.local/bin/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
+@reboot /home/you/.local/share/myhosts --auto >> /home/you/.local/share/myhosts/myhosts.log 2>&1
 ```
 
 An additional option is to set myhosts to run as an autostart script. This should replace the cron reboot option in the above - and is preferable as then it will update on every login instead of just full restart.
@@ -280,7 +280,7 @@ For kde:
 tee ~/.config/autostart/myhosts.desktop >/dev/null <<EOF
 [Desktop Entry]
 Type=Application
-Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
+Exec=/bin/bash -c "/home/$USER/.local/share/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
 Hidden=false
 NoDisplay=false
 X-KDE-AutostartScript=true
@@ -296,7 +296,7 @@ For lxqt:
 tee ~/.config/autostart/myhosts.desktop >/dev/null <<EOF
 [Desktop Entry]
 Type=Application
-Exec=/bin/bash -c "/home/$USER/.local/bin/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
+Exec=/bin/bash -c "/home/$USER/.local/share/myhosts --auto >> /home/$USER/.local/share/myhosts/myhosts.log 2>&1"
 Hidden=false
 NoDisplay=false
 X-LXQt-Autostart-enabled=true
